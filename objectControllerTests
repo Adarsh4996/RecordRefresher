@@ -1,0 +1,44 @@
+/*******************************************************************************************************
+* @Author:          CRM Developer
+* @TestClass:       objectControllerTests
+* @Description:     This is a Batch class where we have define start, execute, finish method for batch run.
+*******************************************************************************************************
+* Version           Author              Date (DD-MM-YYYY)           Description
+* 1.0               CRM Developer                                   Updating code.
+*******************************************************************************************************/
+
+public with sharing class bulkUpdateBatch implements 
+    Database.Batchable<sObject>, Database.Stateful {
+    
+    // instance member to retain state across transactions
+    public Integer recordsProcessed = 0;
+    private String updateObj;
+
+    public bulkUpdateBatch(String objName) {
+        updateObj = objName;
+    }
+
+    public Database.QueryLocator start(Database.BatchableContext bc) {   
+        return Database.getQueryLocator('SELECT id FROM ' + updateObj);
+    }
+
+    public void execute(Database.BatchableContext bc, List<Sobject> recordList){
+        
+        for (Integer i=0;i<recordList.size();i++) {
+            system.debug('Job Id ' + bc.getJobId() + ' about to update record ' + recordList[i].id);
+        }
+        recordsProcessed += recordList.size();        
+        Database.update(recordList,false);
+    }    
+
+    public void finish(Database.BatchableContext bc){
+        AsyncApexJob job = [SELECT
+                                Id, Status, NumberOfErrors,JobItemsProcessed,TotalJobItems, CreatedBy.Email
+                            FROM 
+                                AsyncApexJob
+                            WHERE 
+                                Id = :bc.getJobId()];
+
+    }    
+
+}
